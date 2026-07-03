@@ -1,0 +1,560 @@
+{
+  "info": {
+    "_postman_id": "b7c1e0a2-9d4f-4c11-8f3a-1a2b3c4d5e6f",
+    "name": "DemoQA BookStore API",
+    "description": "Postman collection mirroring the Karate api-automation-karate suite against the DemoQA BookStore API (https://demoqa.com).\n\nGrouped into Account and BookStore. Requests are data-chained via collection variables: registering a user captures `userId`, generating a token captures `accessToken`, and listing the catalog captures `ISBN` and `replacementIsbn`. Run the folders top-to-bottom (or use the Collection Runner) to reproduce the end-to-end flow.\n\nAuth is applied at the collection level as Bearer `{{accessToken}}`; the public catalog requests override this with No Auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://demoqa.com",
+      "type": "string"
+    },
+    {
+      "key": "userName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ISBN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "replacementIsbn",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Generate a fresh, unique user for this run",
+                  "const suffix = pm.variables.replaceIn('{{$randomInt}}') + '' + Date.now().toString().slice(-5);",
+                  "pm.collectionVariables.set('userName', 'qa_' + suffix);",
+                  "pm.collectionVariables.set('password', 'QaPass#' + (1000 + Math.floor(Math.random() * 9000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('userID is returned', () => pm.expect(body.userID).to.be.a('string').and.not.empty);",
+                  "pm.test('username echoes request', () => pm.expect(body.username).to.eql(pm.collectionVariables.get('userName')));",
+                  "pm.collectionVariables.set('userId', body.userID);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Account/v1/User",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Account",
+                "v1",
+                "User"
+              ]
+            },
+            "description": "Provision a new user. Captures the generated `userID` into the `userId` collection variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('status field is Success', () => pm.expect(body.status).to.eql('Success'));",
+                  "pm.test('result confirms authorization', () => pm.expect(body.result).to.eql('User authorized successfully.'));",
+                  "pm.test('token is present', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('accessToken', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Account/v1/GenerateToken",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Account",
+                "v1",
+                "GenerateToken"
+              ]
+            },
+            "description": "Generate a JWT for the provisioned user. Captures `token` into the `accessToken` collection variable used by the collection-level Bearer auth."
+          },
+          "response": []
+        },
+        {
+          "name": "Authorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('body is the literal true', () => pm.expect(pm.response.text()).to.eql('true'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Account/v1/Authorized",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Account",
+                "v1",
+                "Authorized"
+              ]
+            },
+            "description": "Check whether the supplied credentials are authorized. Returns the literal `true` for valid credentials."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('userId matches', () => pm.expect(body.userId).to.eql(pm.collectionVariables.get('userId')));",
+                  "pm.test('username matches', () => pm.expect(body.username).to.eql(pm.collectionVariables.get('userName')));",
+                  "pm.test('books is an array', () => pm.expect(body.books).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Account/v1/User/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Account",
+                "v1",
+                "User",
+                "{{userId}}"
+              ]
+            },
+            "description": "Retrieve the authenticated user's profile and current book collection. Requires Bearer token."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/Account/v1/User/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Account",
+                "v1",
+                "User",
+                "{{userId}}"
+              ]
+            },
+            "description": "Delete the user. Requires Bearer token. Idempotent teardown step."
+          },
+          "response": []
+        }
+      ],
+      "description": "User identity: registration, token generation, authorization check, retrieval, and deletion."
+    },
+    {
+      "name": "BookStore",
+      "item": [
+        {
+          "name": "List All Books",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('catalog is non-empty', () => pm.expect(body.books.length).to.be.above(0));",
+                  "pm.collectionVariables.set('ISBN', body.books[0].isbn);",
+                  "if (body.books.length > 1) { pm.collectionVariables.set('replacementIsbn', body.books[1].isbn); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Books"
+              ]
+            },
+            "description": "Public, read-only catalog. Captures the first two ISBNs into `ISBN` and `replacementIsbn` for downstream data chaining."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Book by ISBN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('isbn matches request', () => pm.expect(body.isbn).to.eql(pm.collectionVariables.get('ISBN')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Book?ISBN={{ISBN}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Book"
+              ],
+              "query": [
+                {
+                  "key": "ISBN",
+                  "value": "{{ISBN}}"
+                }
+              ]
+            },
+            "description": "Retrieve a single book by ISBN. A non-existent ISBN returns 400 with a message."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Books to Collection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('added ISBN is in the collection', () => pm.expect(body.books.map(b => b.isbn)).to.include(pm.collectionVariables.get('ISBN')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"collectionOfIsbns\": [\n    { \"isbn\": \"{{ISBN}}\" }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Books"
+              ]
+            },
+            "description": "Add one or more books (by ISBN) to the user's collection. Requires Bearer token. Adding an ISBN already present returns 400."
+          },
+          "response": []
+        },
+        {
+          "name": "Replace Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('collection now contains the replacement ISBN', () => pm.expect(body.books.map(b => b.isbn)).to.include(pm.collectionVariables.get('replacementIsbn')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"isbn\": \"{{replacementIsbn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Books/{{ISBN}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Books",
+                "{{ISBN}}"
+              ]
+            },
+            "description": "Replace the book at path ISBN with a new ISBN in the user's collection. Requires Bearer token."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Single Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isbn\": \"{{replacementIsbn}}\",\n  \"userId\": \"{{userId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Book",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Book"
+              ]
+            },
+            "description": "Remove a single book from the user's collection. ISBN and userId are supplied in the request body. Requires Bearer token."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Books",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/BookStore/v1/Books?UserId={{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "BookStore",
+                "v1",
+                "Books"
+              ],
+              "query": [
+                {
+                  "key": "UserId",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Clear the entire book collection for a user. Requires Bearer token."
+          },
+          "response": []
+        }
+      ],
+      "description": "Catalog browsing (public) and per-user collection management (add, replace, delete one, delete all)."
+    }
+  ]
+}

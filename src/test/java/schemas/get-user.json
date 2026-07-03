@@ -1,0 +1,5 @@
+{
+  "userId": "#uuid",
+  "username": "#string",
+  "books": "#[] read('classpath:schemas/book.json')"
+}
