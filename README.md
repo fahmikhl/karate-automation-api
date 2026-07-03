@@ -4,6 +4,13 @@ Production-style Karate framework for the DemoQA BookStore API
 (`https://demoqa.com`). Business-workflow oriented, fully data-chained, no
 hardcoded IDs, self-cleaning.
 
+## Demo 
+
+
+https://github.com/user-attachments/assets/141cec2b-204f-4a3e-905e-bd71639047a2
+
+
+
 ## Requirements
 
 - Java 11+
